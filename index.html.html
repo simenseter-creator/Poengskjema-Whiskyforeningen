@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WAT – Whisky Assessment Tool</title>
+<style>
+  :root{--paper:#FBFAF5;--ink:#1C1A17;--rule:#C9C4B8;--muted:#7E786C;--biro:#2E3EA6;--amber:#B8741A}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font:16px/1.4 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+  main{max-width:560px;margin:0 auto;padding:20px 16px 56px}
+  header{display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:16px}
+  header h1{font-size:22px;font-weight:400;margin:0}
+  header h1 b{font-weight:700}
+  header small{color:var(--muted);font-size:13px}
+
+  .mode{display:flex;border:1.5px solid var(--ink);border-radius:3px;overflow:hidden;margin-bottom:18px}
+  .mode button{flex:1;font:inherit;font-size:14px;padding:8px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+  .mode button.on{background:var(--ink);color:var(--paper)}
+  .mode button:focus-visible{outline:2px solid var(--biro);outline-offset:-3px}
+
+  .meta{display:grid;grid-template-columns:72px 1fr 1fr;gap:10px;margin-bottom:22px}
+  .meta label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  .meta input{width:100%;font:inherit;font-size:16px;padding:7px 8px;border:1.5px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink)}
+  .meta input:focus,.meta select:focus,.host input:focus{outline:2px solid var(--biro);outline-offset:1px}
+  .meta select{width:100%;font:inherit;font-size:16px;padding:7px 8px;border:1.5px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink)}
+  .host{border:1px dashed var(--rule);border-radius:3px;padding:4px 10px;margin:-8px 0 20px}
+  .host summary{font-size:14px}
+  .host .hint{font-size:13px;color:var(--muted);margin:2px 0 8px}
+  .host .wrow{display:grid;grid-template-columns:34px 1fr 32px;gap:8px;align-items:center;margin-bottom:6px}
+  .host .wrow span{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+  .host input{width:100%;font:inherit;font-size:15px;padding:6px 8px;border:1.5px solid var(--ink);border-radius:2px;background:#fff;color:var(--ink)}
+  .host .del{font:inherit;border:0;background:none;color:#9A2D2D;cursor:pointer;font-size:18px;white-space:nowrap;justify-self:end}
+  .host .del[data-armed]{font-size:12px;color:#fff;background:#9A2D2D;border-radius:2px;padding:2px 6px}
+  .hostActions{display:flex;gap:8px;margin:6px 0 8px}
+  button.small{font-size:14px;padding:8px 12px;flex:initial}
+
+  h2{font-size:15px;font-weight:700;margin:26px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--rule)}
+  .hidden{display:none}
+  .row{padding:9px 0;border-bottom:1px dotted var(--rule)}
+  .row .name{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .row .name span:first-child{font-weight:700}
+  .row .anchors{font-size:12px;color:var(--muted);font-style:italic}
+  .boxes{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+  .box{position:relative;aspect-ratio:1;border:1.5px solid var(--ink);border-radius:2px;background:#fff;padding:0;
+    cursor:pointer;font:inherit;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center}
+  .box:focus-visible{outline:2px solid var(--biro);outline-offset:2px}
+  .box.on{color:transparent}
+  .box.on::before,.box.on::after{content:"";position:absolute;left:12%;top:47%;width:76%;height:2px;background:var(--biro);transform:rotate(45deg) translateY(-1px);border-radius:1px}
+  .box.on::after{transform:rotate(-45deg) translateY(1px)}
+  .box.total{border-width:2px}
+
+  .actions{display:flex;gap:10px;margin-top:26px}
+  button.primary{flex:1;font:inherit;font-size:17px;padding:13px;border:0;border-radius:3px;background:var(--ink);color:var(--paper);cursor:pointer}
+  button.primary:disabled{background:var(--rule);color:#fff;cursor:default}
+  button.ghost{font:inherit;font-size:15px;padding:13px 16px;border:1.5px solid var(--ink);border-radius:3px;background:transparent;color:var(--ink);cursor:pointer}
+  button:focus-visible{outline:2px solid var(--biro);outline-offset:2px}
+  .note{font-size:13px;color:var(--muted);margin-top:8px;min-height:1.3em}
+
+  details{border-bottom:1px solid var(--rule);padding:6px 0}
+  summary{cursor:pointer;font-weight:700;padding:6px 0;list-style:none;display:flex;justify-content:space-between}
+  summary::-webkit-details-marker{display:none}
+  summary small{font-weight:400;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:4px 0 8px}
+  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-weight:700;font-size:12px;color:var(--muted)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td .who{display:block;font-size:12px;color:var(--muted)}
+  td.sub{padding-left:14px;color:var(--muted)}
+  .empty{color:var(--muted);font-size:14px;padding:12px 0}
+  .rowdel[data-armed]{color:#fff;background:#9A2D2D;border-radius:2px;font-size:12px;padding:2px 6px}
+  .rowdel{font:inherit;font-size:16px;line-height:1;border:0;background:none;color:#9A2D2D;cursor:pointer;padding:0 4px;margin-left:4px}
+  .rowdel:focus-visible{outline:2px solid var(--biro);outline-offset:1px}
+  .avg{color:var(--amber);font-weight:700}
+  .tools{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:14px}
+  .tools a{color:var(--biro);cursor:pointer;text-decoration:underline}
+  .tools a.danger{color:#9A2D2D}
+  .tools a[data-armed]{color:#fff;background:#9A2D2D;padding:2px 6px;border-radius:2px;text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1><b>W</b>hisky <b>A</b>ssessment <b>T</b>ool</h1>
+    <small>TFWØNM</small>
+  </header>
+
+  <div class="mode" role="group" aria-label="Skjemaversjon">
+    <button type="button" id="modeFull">Full</button>
+    <button type="button" id="modeShort">Kort – bare total</button>
+  </div>
+
+  <div class="meta">
+    <div><label for="mote">Møte</label><input id="mote" inputmode="numeric" placeholder="233"></div>
+    <div><label for="smaker">Smaker</label><input id="smaker" autocomplete="off" placeholder="Ditt navn"></div>
+    <div><label for="whisky">Whisky</label><select id="whisky"></select></div>
+  </div>
+
+  <details class="host" id="hostPanel">
+    <summary>Kveldens whiskyer <small id="hostCount"></small></summary>
+    <p class="hint">Verten legger inn antall før møtet. Navn kan fylles inn etter avsløring – poengene henger på nummeret.</p>
+    <div id="hostList"></div>
+    <div class="hostActions">
+      <button type="button" class="ghost small" id="addWhisky">+ Legg til whisky</button>
+      <button type="button" class="primary small" id="saveWhiskies">Lagre liste</button>
+    </div>
+  </details>
+
+  <div id="fullPart">
+    <h2>Karakter</h2>
+    <div id="scales"></div>
+  </div>
+
+  <h2>Total bedømmelse</h2>
+  <div id="totals"></div>
+
+  <div class="actions">
+    <button class="primary" id="save" disabled>Lagre bedømmelse</button>
+    <button class="ghost" id="clear">Nullstill</button>
+  </div>
+  <div class="note" id="note"></div>
+
+  <h2>Lagrede bedømmelser</h2>
+  <div id="list"></div>
+  <div class="tools">
+    <a id="csvMeeting">CSV for dette møtet</a>
+    <a id="csvAll">CSV for alle møter</a>
+    <a id="wipe" class="danger">Slett dette møtet</a>
+  </div>
+</main>
+
+<script>
+const SCALES = [
+  ["Farge","Vann","Guinness"],["Fylde","Tynn","Kvae"],["Ettersmak","Kort","Lang"],
+  ["Etanol","Harmonisk","96 %"],["Villskap","A1","Mayhem"],["Sødme","Sur svie","Søt kløe"],
+  ["Salt","VOSS","Dødehavet"],["Røyk","Ingen","Skogbrann"],["Torv","Old Trafford","Gjemselund"],
+];
+const TOTALS = ["Lukt","Smak","Ettersmak","Totalt"];
+const API = "LIM_INN_APPS_SCRIPT_URL_HER";   // fra Google Apps Script → Deploy → Web app
+let whiskies = {};   // { "233": ["Ardbeg 10", "", "Lagavulin 16"] }
+
+async function api(body){
+  const r = await fetch(API, { method:"POST", body: JSON.stringify(body), headers:{"Content-Type":"text/plain;charset=utf-8"} });
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+async function refresh(){
+  try{ const d = await (await fetch(API)).json(); entries=d.entries||[]; whiskies=d.whiskies||{}; return true; }
+  catch(e){ $("note").textContent="Får ikke kontakt med regnearket. Sjekk nett og API-adresse."; return false; }
+}
+const $ = id=>document.getElementById(id);
+const scores = {};
+let entries = [];
+let mode = "short";
+
+/* ---- rader ---- */
+function row(container, name, lo, hi, isTotal){
+  const key = isTotal ? "T_"+name : "S_"+name;      // Ettersmak finnes i begge deler
+  const r = document.createElement("div"); r.className="row";
+  r.innerHTML = `<div class="name"><span>${name}</span>` + (lo?`<span class="anchors">${lo} → ${hi}</span>`:"") + `</div>`;
+  const b = document.createElement("div"); b.className="boxes";
+  for(let i=0;i<=10;i++){
+    const x = document.createElement("button");
+    x.type="button"; x.className="box"+(isTotal?" total":""); x.textContent=i; x.setAttribute("aria-label",`${name} ${i}`);
+    x.addEventListener("click",()=>{
+      const same = scores[key]===i; scores[key] = same?undefined:i;
+      [...b.children].forEach((c,j)=>c.classList.toggle("on", !same && j===i)); validate();
+    });
+    b.appendChild(x);
+  }
+  r.appendChild(b); container.appendChild(r);
+}
+SCALES.forEach(([n,lo,hi])=>row($("scales"),n,lo,hi,false));
+TOTALS.forEach(n=>row($("totals"),n,null,null,true));
+
+/* ---- modus ---- */
+function setMode(m){
+  mode = m;
+  $("fullPart").classList.toggle("hidden", m==="short");
+  $("modeFull").classList.toggle("on", m==="full");
+  $("modeShort").classList.toggle("on", m==="short");
+  try{ localStorage.setItem("wat-mode", m); }catch(e){}
+}
+$("modeFull").onclick = ()=>setMode("full");
+$("modeShort").onclick = ()=>setMode("short");
+
+/* ---- validering og husk felt ---- */
+function validate(){ $("save").disabled = !($("whisky").value && $("mote").value.trim() && scores["T_Totalt"]!==undefined); }
+["smaker","mote"].forEach(id=>$(id).addEventListener("input",()=>{ remember(); if(id==="mote"){ renderHost(); renderSelect(); render(); } validate(); }));
+$("whisky").addEventListener("change",validate);
+
+/* ---- kveldens whiskyer (verten) ---- */
+function curList(){ return whiskies[$("mote").value.trim()] || []; }
+function label(m,i){ const n=(whiskies[m]||[])[i]; return `Whisky ${i+1}` + (n?` – ${n}`:""); }
+function renderSelect(){
+  const sel=$("whisky"), keep=sel.value, list=curList();
+  sel.innerHTML = list.length ? `<option value="">Velg…</option>` + list.map((n,i)=>`<option value="${i+1}">${label($("mote").value.trim(),i)}</option>`).join("")
+                              : `<option value="">Verten må legge inn whiskyer først</option>`;
+  sel.value = keep; validate();
+}
+function renderHost(){
+  const list=curList(); $("hostCount").textContent = list.length ? `${list.length} stk` : "ingen lagt inn";
+  $("hostList").innerHTML = list.map((n,i)=>`<div class="wrow"><span>${i+1}</span><input data-i="${i}" value="${n.replace(/"/g,'&quot;')}" placeholder="Navn (kan fylles inn senere)"><button type="button" class="del" data-i="${i}" aria-label="Fjern">×</button></div>`).join("");
+  if(!$("mote").value.trim()) $("hostList").innerHTML = `<div class="hint">Skriv inn møtenummer først.</div>`;
+}
+$("addWhisky").onclick = ()=>{ const m=$("mote").value.trim(); if(!m) return; (whiskies[m] ||= []).push(""); renderHost(); };
+$("hostList").addEventListener("click",e=>{
+  if(!e.target.classList.contains("del")) return;
+  const m=$("mote").value.trim(), i=+e.target.dataset.i;
+  const has = entries.some(x=>x.mote===m && +x.nr===i+1);
+  if(has){ twoTap(e.target, "har poeng – fjern?", ()=>{ whiskies[m].splice(i,1); renderHost(); }); return; }
+  whiskies[m].splice(i,1); renderHost();
+});
+$("saveWhiskies").onclick = async ()=>{
+  const m=$("mote").value.trim(); if(!m) return;
+  whiskies[m] = [...$("hostList").querySelectorAll("input")].map(i=>i.value.trim());
+  $("saveWhiskies").disabled=true;
+  try{ await api({action:"whiskies", mote:m, list:whiskies[m]}); $("note").textContent="Whiskyliste lagret."; }
+  catch(e){ $("note").textContent="Kunne ikke lagre lista: "+e.message; }
+  $("saveWhiskies").disabled=false;
+  await refresh(); renderHost(); renderSelect(); render();
+};
+function remember(){ try{ localStorage.setItem("wat-smaker",$("smaker").value); localStorage.setItem("wat-mote",$("mote").value); }catch(e){} }
+
+/* ---- lagring ---- */
+async function load(){
+  await refresh();
+  try{
+    $("smaker").value = localStorage.getItem("wat-smaker")||"";
+    $("mote").value = localStorage.getItem("wat-mote")||"";
+    setMode(localStorage.getItem("wat-mode")||"short");
+  }catch(e){ setMode("short"); }
+  if(!$("mote").value) $("mote").value = latestMeeting();
+  renderHost(); renderSelect(); render(); validate();
+}
+setInterval(async ()=>{ if(document.visibilityState==="visible"){ await refresh(); renderHost(); renderSelect(); render(); } }, 20000);
+function latestMeeting(){ return [...entries.map(e=>e.mote),...Object.keys(whiskies)].sort((a,b)=>(+b)-(+a))[0]||""; }
+
+$("save").addEventListener("click", async ()=>{
+  const m=$("mote").value.trim(), nr=+$("whisky").value;
+  const e = { ts:new Date().toISOString(), mote:m, nr, smaker:$("smaker").value.trim(), versjon:mode==="full"?"full":"kort" };
+  const KEYS={"Sødme":"Sodme","Røyk":"Royk"};
+  SCALES.forEach(([n])=>e[KEYS[n]||n]= mode==="full" ? (scores["S_"+n]??"") : "");
+  TOTALS.forEach(n=>e["T_"+n]=scores["T_"+n]??"");
+  $("save").disabled=true; $("note").textContent="Lagrer …";
+  try{ await api({action:"add", entry:e}); $("note").textContent=`Lagret: ${label(m,nr-1)} – ${e.T_Totalt}/10`; resetScores(); $("whisky").value=""; }
+  catch(err){ $("note").textContent="Kunne ikke lagre: "+err.message; }
+  await refresh(); render(); validate();
+});
+function resetScores(){ Object.keys(scores).forEach(k=>delete scores[k]); document.querySelectorAll(".box.on").forEach(b=>b.classList.remove("on")); validate(); }
+$("clear").addEventListener("click",()=>{ resetScores(); $("note").textContent=""; });
+
+/* ---- liste, gruppert per møte ---- */
+function render(){
+  const cur = $("mote").value.trim();
+  const list = $("list");
+  if(!entries.length){ list.innerHTML = `<div class="empty">Ingen bedømmelser ennå. Skriv inn møtenummer og første whisky.</div>`; return; }
+  const byMeeting = {};
+  entries.forEach(e=>{ (byMeeting[e.mote] ||= []).push(e); });
+  const meetings = Object.keys(byMeeting).sort((a,b)=>(+b)-(+a));
+  list.innerHTML = meetings.map(m=>{
+    const es = byMeeting[m], byW = {};
+    es.forEach(e=>{ (byW[e.nr] ||= []).push(e); });
+    let t = `<table><tr><th>Whisky</th><th class="num">Lukt</th><th class="num">Smak</th><th class="num">Etter</th><th class="num">Totalt</th></tr>`;
+    Object.keys(byW).sort((a,b)=>a-b).forEach(nr=>{ const ws=byW[nr], w=label(m,nr-1);
+      const avg = k => (ws.reduce((a,e)=>a+(+e[k]||0),0)/ws.length).toFixed(1);
+      t += `<tr><td><b>${w}</b><span class="who">${ws.length} smaker${ws.length>1?"e":""}</span></td>
+        <td class="num">${avg("T_Lukt")}</td><td class="num">${avg("T_Smak")}</td><td class="num">${avg("T_Ettersmak")}</td><td class="num avg">${avg("T_Totalt")}</td></tr>`;
+      ws.forEach(e=>{ t += `<tr><td class="sub">${e.smaker||"anonym"} <button type="button" class="rowdel" data-ts="${e.ts}" aria-label="Slett denne bedømmelsen">×</button></td><td class="num">${e.T_Lukt}</td><td class="num">${e.T_Smak}</td><td class="num">${e.T_Ettersmak}</td><td class="num">${e.T_Totalt}</td></tr>`; });
+    });
+    const open = m===cur || (!cur && m===meetings[0]) ? " open" : "";
+    return `<details${open}><summary>Møte ${m}<small>${Object.keys(byW).length} whisky · ${es.length} bedømmelser</small></summary>${t}</table></details>`;
+  }).join("");
+}
+
+/* ---- to-trykks bekreftelse (dialogbokser blokkeres i artefakter) ---- */
+function twoTap(el, text, fn){
+  if(el.dataset.armed){ delete el.dataset.armed; el.textContent=el.dataset.orig; fn(); return; }
+  el.dataset.orig=el.textContent; el.dataset.armed="1"; el.textContent=text;
+  setTimeout(()=>{ if(el.dataset.armed){ delete el.dataset.armed; el.textContent=el.dataset.orig; } },4000);
+}
+
+/* ---- eksport og sletting ---- */
+function csv(rows, name){
+  const cols = ["ts","mote","nr","whisky","smaker","versjon",...SCALES.map(s=>({"Sødme":"Sodme","Røyk":"Royk"}[s[0]]||s[0])),...TOTALS.map(t=>"T_"+t)];
+  const lines = [cols.join(";"), ...rows.map(e=>cols.map(c=>`"${String(c==="whisky" ? ((whiskies[e.mote]||[])[e.nr-1]||"") : (e[c]??"")).replace(/"/g,'""')}"`).join(";"))];
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"}));
+  a.download = name; a.click();
+}
+$("list").addEventListener("click", async e=>{
+  const b=e.target.closest(".rowdel"); if(!b) return;
+  const x=entries.find(x=>x.ts===b.dataset.ts); if(!x) return;
+  twoTap(b, "slett?", async ()=>{ try{ await api({action:"delete", ts:b.dataset.ts}); }catch(e){ $("note").textContent="Kunne ikke slette: "+e.message; } await refresh(); render(); });
+});
+$("csvMeeting").onclick = ()=>{ const m=$("mote").value.trim(); csv(entries.filter(e=>e.mote===m), `wat-mote-${m||"x"}.csv`); };
+$("csvAll").onclick = ()=>csv(entries, "wat-alle-moter.csv");
+$("wipe").onclick = ()=>{
+  const m=$("mote").value.trim(); if(!m) return;
+  twoTap($("wipe"), `Trykk igjen for å slette møte ${m}`, async ()=>{ try{ await api({action:"deleteMeeting", mote:m}); }catch(e){ $("note").textContent="Kunne ikke slette: "+e.message; } await refresh(); render(); });
+};
+
+load();
+</script>
+</body>
+</html>
